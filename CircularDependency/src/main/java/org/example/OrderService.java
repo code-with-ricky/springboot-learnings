@@ -13,6 +13,10 @@ public class OrderService {
     public void placeOrder(){
         paymentService.pay();
         System.out.println("Order Placed");
+
+        // call the get order details here
+        // this removed the circular dependency
+        getOrderDetails();
     }
     public void getOrderDetails() {
         System.out.println("Order Details");

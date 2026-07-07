@@ -12,3 +12,12 @@ The scenario which arises when creation of object of Class A requires object of 
 ---
 ## Methods to resolve circular dependency in spring
 - avoid using `Constructor injection`, rather use `Field Injection` or `Setter Injection`
+- How it is working?
+  - Take above example of OrderService and PaymentService itself
+  - OrderService Empty Object will be created
+  - PaymentService empty object will be created
+  - Inject PaymentService to OrderService
+  - Inject OrderService to PaymentService
+
+- There are many other ways to resolve Circular Dependency but this scenario should not happen, its a bad coding practice
+- In springboot v2.3 and above, this resolution method will not work only as an application propery named `spring.main.allow-circular-reference`: false
