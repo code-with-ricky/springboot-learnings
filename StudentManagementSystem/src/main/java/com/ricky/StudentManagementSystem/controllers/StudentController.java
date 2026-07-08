@@ -4,9 +4,11 @@ import com.ricky.StudentManagementSystem.entities.Student;
 import com.ricky.StudentManagementSystem.services.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/students")  // this sets prefix for all endpoints inside this StudentController
@@ -14,7 +16,7 @@ public class StudentController {
 
     // Dependency injection of StudentService, as we need to call StudentService methods
     // for which we need bean of StudentService
-    private StudentService studentService;
+    private final StudentService studentService;
     @Autowired
     public StudentController(StudentService studentService){
         this.studentService = studentService;
@@ -27,5 +29,46 @@ public class StudentController {
         // using jackson library
         Student createdStudent = studentService.createStudent(student);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
+    }
+
+    // GET /api/students/{id}
+    // Example: /api/students/1
+    @GetMapping("{id}")
+    public ResponseEntity<Student> getStudentDetails(@PathVariable Long id){
+        Student fetchedStudent = studentService.getStudentDetailsService(id);
+        if(fetchedStudent == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(fetchedStudent);
+    }
+
+    // GET /api/students
+    // Example: /api/students
+    @GetMapping
+    public ResponseEntity<List<Student>> getAllStudentDetails(){
+        List<Student> fetchedAllStudent = studentService.getAllStudentService();
+        return ResponseEntity.ok(fetchedAllStudent);
+    }
+
+    // PUT /api/students/{id}
+    // Example: /api/students/1
+    @PutMapping("{id}")
+    public ResponseEntity<Student> updateStudent(@PathVariable Long id, @RequestBody Student student){
+        Student updatedStudent = studentService.updateStudentService(id, student);
+        if(updatedStudent == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(updatedStudent);
+    }
+
+    // DELETE /api/students/{id}
+    // Example: /api/students/1
+    @DeleteMapping("{id}")
+    public ResponseEntity deleteStudent(@PathVariable Long id){
+        boolean deleteResponse = studentService.deleteStudentService(id);
+        if(!deleteResponse) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok().build();
     }
 }
