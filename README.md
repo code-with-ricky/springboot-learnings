@@ -10,3 +10,4 @@ follow the below numbering:
 6. 
 7. 
 8. SpringbootCoreDemo - https://github.com/code-with-ricky/springboot-learnings/tree/main/SpringbootCoreDemo
+8. SpringbootDemo2 - https://github.com/code-with-ricky/springboot-learnings/tree/main/SpringbootDemo2
