@@ -752,3 +752,296 @@ public class CreateStudentRequestDTO {
 | `@AssertFalse` | `boolean`, `Boolean` | Value must be `false`. |
 
 ---
+
+### Why Global Exception Handling?
+
+Without Global Exception Handling, every controller/service method would need its own `try-catch` block.
+
+```java
+try {
+    // business logic
+} catch (Exception ex) {
+    // return error response
+}
+```
+
+This leads to:
+- Duplicate code
+- Difficult maintenance
+- Inconsistent error responses
+
+Instead, Spring Boot provides **Global Exception Handling** using:
+
+- `@RestControllerAdvice`
+- `@ExceptionHandler`
+
+which centralizes exception handling for the entire application.
+
+---
+
+### Exception Flow
+
+```
+Client Request
+      │
+      ▼
+Controller
+      │
+      ▼
+Service
+      │
+      ▼
+Exception Thrown
+      │
+      ▼
+GlobalExceptionHandler
+      │
+      ▼
+Error Response (JSON)
+```
+
+---
+
+### @RestControllerAdvice
+
+Marks a class as a **global exception handler**.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+}
+```
+
+It automatically intercepts exceptions thrown from any `@RestController`.
+
+---
+
+### @ExceptionHandler
+
+Used to handle a specific exception type.
+
+```java
+@ExceptionHandler(ResourceNotFoundException.class)
+public ResponseEntity<ExceptionResponseDTO> handleResourceNotFoundException(
+        ResourceNotFoundException ex) {
+
+}
+```
+
+Whenever `ResourceNotFoundException` is thrown, this method is executed automatically.
+
+---
+
+### Custom Exceptions
+
+Java provides many built-in exceptions, but business logic often requires custom exceptions.
+
+Example:
+
+```java
+public class ResourceNotFoundException extends RuntimeException {
+
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+}
+```
+
+Another example:
+
+```java
+public class DuplicateResourceException extends RuntimeException {
+
+    public DuplicateResourceException(String message) {
+        super(message);
+    }
+}
+```
+
+Usage:
+
+```java
+throw new ResourceNotFoundException("Student not found");
+```
+
+---
+
+### Using `orElseThrow()`
+
+Instead of writing:
+
+```java
+Optional<Student> student = repository.findById(id);
+
+if(student.isEmpty()){
+    throw new ResourceNotFoundException("Student not found");
+}
+
+return student.get();
+```
+
+Prefer:
+
+```java
+return repository.findById(id)
+        .orElseThrow(() ->
+            new ResourceNotFoundException("Student not found"));
+```
+
+It is shorter and more readable.
+
+---
+
+### Validation Exception Handling
+
+When validation fails (`@Valid`), Spring throws:
+
+```java
+MethodArgumentNotValidException
+```
+
+It can be handled globally:
+
+```java
+@ExceptionHandler(MethodArgumentNotValidException.class)
+```
+
+Extract all field errors:
+
+```java
+Map<String, String> fieldErrors = new HashMap<>();
+
+ex.getBindingResult()
+        .getFieldErrors()
+        .forEach(error ->
+            fieldErrors.put(
+                error.getField(),
+                error.getDefaultMessage()
+            ));
+```
+
+Example response:
+
+```json
+{
+    "timestamp": "...",
+    "statusCode": 400,
+    "error": "Bad Request",
+    "message": "Validation Failed",
+    "path": "/students",
+    "fieldErrors": {
+        "name": "Name not provided.",
+        "email": "Invalid email format."
+    }
+}
+```
+
+---
+
+### ResponseEntity
+
+`ResponseEntity<T>` represents the complete HTTP response.
+
+It allows us to customize:
+
+- Status Code
+- Headers
+- Response Body
+
+Example:
+
+```java
+return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .body(exceptionResponse);
+```
+
+---
+
+### ExceptionResponseDTO
+
+Instead of returning plain text:
+
+```text
+Student not found
+```
+
+return a structured response.
+
+Example:
+
+```json
+{
+    "timestamp": "...",
+    "statusCode": 404,
+    "error": "Not Found",
+    "message": "Student with id 10 not found.",
+    "path": "/students/10"
+}
+```
+
+Benefits:
+- Consistent response format
+- Easy for frontend to parse
+- Easier debugging
+
+---
+
+### ValidationExceptionResponseDTO
+
+Validation errors usually involve multiple fields.
+
+Hence, along with the common fields, include:
+
+```java
+Map<String, String> fieldErrors;
+```
+
+Example:
+
+```json
+{
+    "timestamp": "...",
+    "statusCode": 400,
+    "error": "Bad Request",
+    "message": "Validation Failed",
+    "path": "/students",
+    "fieldErrors": {
+        "email": "Invalid email format.",
+        "name": "Name should be between 2 to 50 characters long."
+    }
+}
+```
+
+---
+
+### Order of Exception Handlers
+
+Always define handlers from **most specific** to **most generic**.
+
+```
+ResourceNotFoundException
+        │
+DuplicateResourceException
+        │
+MethodArgumentNotValidException
+        │
+RuntimeException
+        │
+Exception
+```
+
+Spring always chooses the **most specific matching handler**.
+
+---
+
+### Best Practices
+
+- Throw custom exceptions from the Service layer.
+- Keep controllers clean.
+- Use `@RestControllerAdvice` for centralized exception handling.
+- Return consistent JSON responses.
+- Use meaningful exception messages.
+- Keep a generic `Exception` handler as the last fallback.
+- Prefer `orElseThrow()` over manually checking `Optional`.

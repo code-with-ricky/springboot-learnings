@@ -40,9 +40,12 @@ public class StudentController {
     @GetMapping("{id}")
     public ResponseEntity<Student> getStudentDetails(@PathVariable Long id){
         Student fetchedStudent = studentService.getStudentDetailsService(id);
-        if(fetchedStudent == null) {
-            return ResponseEntity.notFound().build();
-        }
+
+        // since added exception handler we don't need to handle it here anymore
+        // if(fetchedStudent == null) {
+        //     return ResponseEntity.notFound().build();
+        // }
+
         return ResponseEntity.ok(fetchedStudent);
     }
 
@@ -59,9 +62,9 @@ public class StudentController {
     @PutMapping("{id}")
     public ResponseEntity<Student> updateStudent(@PathVariable Long id, @RequestBody Student student){
         Student updatedStudent = studentService.updateStudentService(id, student);
-        if(updatedStudent == null) {
-            return ResponseEntity.notFound().build();
-        }
+        // if(updatedStudent == null) {
+        //     return ResponseEntity.notFound().build();
+        // }
         return ResponseEntity.ok(updatedStudent);
     }
 
@@ -69,23 +72,23 @@ public class StudentController {
     // Example: /api/students/1
     @DeleteMapping("{id}")
     public ResponseEntity<?> deleteStudent(@PathVariable Long id){
-        boolean deleteResponse = studentService.deleteStudentService(id);
-        if(!deleteResponse) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok().build();
+        studentService.deleteStudentService(id);
+        // if(!deleteResponse) {
+        //     return ResponseEntity.notFound().build();
+        // }
+        return ResponseEntity.noContent().build();
     }
 
     // Here we are learning about query parameters also
     // PATCH /api/students?id=2
     @PatchMapping
     public ResponseEntity<?> softDeleteStudent(@RequestParam Long id){
-        Boolean isStudentDeleted = studentService.deleteStudentSoftly(id);
+        studentService.deleteStudentSoftly(id);
 
-        if(!isStudentDeleted){
-            return ResponseEntity.notFound().build();
-        }
+        // if(!isStudentDeleted){
+        //     return ResponseEntity.notFound().build();
+        // }
 
-        return ResponseEntity.ok("Record deleted");
+        return ResponseEntity.noContent().build();
     }
 }

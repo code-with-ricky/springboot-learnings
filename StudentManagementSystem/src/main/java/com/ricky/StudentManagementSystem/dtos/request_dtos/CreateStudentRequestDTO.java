@@ -21,6 +21,7 @@ public class CreateStudentRequestDTO {
     private Integer age;
 
     @NotNull(message = "Roll Number not provided.")
+    @Min(value = 1, message = "Roll number should be >= 1")
     private Integer rollNo;
 
     @NotBlank(message = "Subject not provided.")

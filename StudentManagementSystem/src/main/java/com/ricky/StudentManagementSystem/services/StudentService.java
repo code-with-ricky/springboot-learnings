@@ -3,11 +3,12 @@ package com.ricky.StudentManagementSystem.services;
 import com.ricky.StudentManagementSystem.dtos.request_dtos.CreateStudentRequestDTO;
 import com.ricky.StudentManagementSystem.dtos.response_dtos.CreateStudentResponseDTO;
 import com.ricky.StudentManagementSystem.entities.Student;
+import com.ricky.StudentManagementSystem.exceptions.DuplicateResourceException;
+import com.ricky.StudentManagementSystem.exceptions.ResourceNotFoundException;
 import com.ricky.StudentManagementSystem.repositories.StudentRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class StudentService {
@@ -26,6 +27,11 @@ public class StudentService {
         student.setSubject(studentReqDto.getSubject());
         // set default value of variable for soft delete as false for new records
         student.setDeleted(false);
+
+        // check if student already exist or not
+        if (emailExist(student)) {
+            throw new DuplicateResourceException("Email address already exists");
+        }
 
         // save the student
         Student studentResponse = studentRepository.save(student);
@@ -53,12 +59,21 @@ public class StudentService {
 
         // following is not a standard method
         // but based on name, spring data jpa creates implementation at run time
-        Optional<Student> fetchedStudentResponse = studentRepository.findByIdAndIsDeletedFalse(studentId);
+        // Optional<Student> fetchedStudentResponse =
+        // studentRepository.findByIdAndIsDeletedFalse(studentId);
 
-        if (fetchedStudentResponse.isPresent()) {
-            return fetchedStudentResponse.get();
-        }
-        return null;
+        // if (fetchedStudentResponse.isPresent()) {
+        // return fetchedStudentResponse.get();
+        // }
+        // return null;
+
+        Student fetchedStudentResponse = studentRepository
+                .findByIdAndIsDeletedFalse(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student with id " + studentId + " not found."));
+
+        // here we will reach if exception is not there and student with studentId is
+        // found
+        return fetchedStudentResponse;
     }
 
     public List<Student> getAllStudentService() {
@@ -66,12 +81,15 @@ public class StudentService {
     }
 
     public Student updateStudentService(Long studentId, Student studentReq) {
-        Optional<Student> existingStudent = studentRepository.findByIdAndIsDeletedFalse(studentId);
-        if (existingStudent.isEmpty()) {
-            return null;
-        }
+        // Optional<Student> existingStudent =
+        // studentRepository.findByIdAndIsDeletedFalse(studentId);
+        // if (existingStudent.isEmpty()) {
+        // return null;
+        // }
 
-        Student studentToSave = existingStudent.get();
+        Student studentToSave = studentRepository
+                .findByIdAndIsDeletedFalse(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student with id " + studentId + " not found."));
 
         studentToSave.setName(studentReq.getName());
         studentToSave.setEmail(studentReq.getEmail());
@@ -85,27 +103,37 @@ public class StudentService {
     }
 
     // Hard delete - Permanently delete from Database
-    public Boolean deleteStudentService(Long studentId) {
-        boolean studentExists = studentRepository.existsById(studentId);
-        if (!studentExists) {
-            return false;
-        }
+    public void deleteStudentService(Long studentId) {
+        // boolean studentExists = studentRepository.existsById(studentId);
+        // if (!studentExists) {
+        // return false;
+        // }
 
-        studentRepository.deleteById(studentId);
-        return true;
+        Student studentToBeDeleted = studentRepository
+                .findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student with id " + studentId + " not found."));
+
+        studentRepository.delete(studentToBeDeleted);
     }
 
     // Soft Delete
-    public Boolean deleteStudentSoftly(Long id) {
-        Optional<Student> studentResponse = studentRepository.findByIdAndIsDeletedFalse(id);
-        if (studentResponse.isEmpty()) {
-            return false;
-        }
+    public void deleteStudentSoftly(Long id) {
+        // Optional<Student> studentResponse =
+        // studentRepository.findByIdAndIsDeletedFalse(id);
+        // if (studentResponse.isEmpty()) {
+        // return false;
+        // }
 
-        Student student = studentResponse.get();
+        Student student = studentRepository
+                .findByIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student with id " + id + " not found."));
+
         student.setDeleted(true);
         studentRepository.save(student);
+    }
 
-        return true;
+    // Helper method
+    private boolean emailExist(Student student) {
+        return studentRepository.existsByEmail(student.getEmail());
     }
 }
