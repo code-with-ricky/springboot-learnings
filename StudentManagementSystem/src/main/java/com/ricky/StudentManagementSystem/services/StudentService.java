@@ -1,5 +1,7 @@
 package com.ricky.StudentManagementSystem.services;
 
+import com.ricky.StudentManagementSystem.dtos.request_dtos.CreateStudentRequestDTO;
+import com.ricky.StudentManagementSystem.dtos.response_dtos.CreateStudentResponseDTO;
 import com.ricky.StudentManagementSystem.entities.Student;
 import com.ricky.StudentManagementSystem.repositories.StudentRepository;
 import org.springframework.stereotype.Service;
@@ -15,10 +17,30 @@ public class StudentService {
         this.studentRepository = studentRepository;
     }
 
-    public Student createStudent(Student student) {
+    public CreateStudentResponseDTO createStudent(CreateStudentRequestDTO studentReqDto) {
+        Student student = new Student();
+        student.setName(studentReqDto.getName());
+        student.setEmail(studentReqDto.getEmail());
+        student.setAge(studentReqDto.getAge());
+        student.setRollNo(studentReqDto.getRollNo());
+        student.setSubject(studentReqDto.getSubject());
         // set default value of variable for soft delete as false for new records
         student.setDeleted(false);
-        return studentRepository.save(student);
+
+        // save the student
+        Student studentResponse = studentRepository.save(student);
+
+        // Create response and do mapping
+        CreateStudentResponseDTO createStudentResponse = new CreateStudentResponseDTO();
+        createStudentResponse.setId(studentResponse.getId());
+        createStudentResponse.setName(studentResponse.getName());
+        createStudentResponse.setEmail(studentResponse.getEmail());
+        createStudentResponse.setAge(studentResponse.getAge());
+        createStudentResponse.setRollNo(studentResponse.getRollNo());
+        createStudentResponse.setSubject(studentResponse.getSubject());
+        createStudentResponse.setMessage("Student created successfully!");
+
+        return createStudentResponse;
     }
 
     // Optional meaning, data may be there or may not be there

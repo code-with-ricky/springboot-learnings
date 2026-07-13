@@ -522,9 +522,233 @@ As queries become more complex (multiple joins, aggregations, subqueries, custom
 - `Specification<T>` for dynamic queries
 ---
 
-## Summary
-- Controller handles HTTP requests.
-- Service handles business logic.
-- Repository handles database operations.
-- Entity represents the table structure.
-- `ResponseEntity` is used to send proper HTTP status codes and responses.
+## DTO - Data Transfer Object
+### Problems currently being faced
+- Currently we are not checking for any data coming from client
+    - suppose if client sends value of isDeleted or id etc
+    - which was meant to be logically handled internally
+
+- At present we are sending the exact student entity in response
+    - issue with this that unwanted fields / sensitive data also like password, isDeleted etc will also go to client
+
+- Client Contract should not break
+    - like if in entity if we break `name` to firstName and lastName, then we have to tell client aswell to change at their end too
+
+### Solution
+- DTO: Data transfer object
+- its nothing but a POJO class containing fields we want in request and response
+- So we will have two types of dtos
+    - RequestDTO
+    - ResponseDTO
+
+- So lets apply it in for Create Student first
+```java
+// CreateStudentRequestDTO.java
+
+package com.ricky.StudentManagementSystem.dtos.request_dtos;
+
+public class CreateStudentRequestDTO {
+    private String name;
+    private String email;
+    private int age;
+    private int rollNo;
+    private String subject;
+
+    // GETTERS
+    public String getName() {
+        return name;
+    }
+    public String getEmail() {
+        return email;
+    }
+    public int getAge() {
+        return age;
+    }
+    public int getRollNo() {
+        return rollNo;
+    }
+    public String getSubject() {
+        return subject;
+    }
+}
+```
+
+```java
+// CreateStudentResponseDTO.java
+
+package com.ricky.StudentManagementSystem.dtos.response_dtos;
+
+public class CreateStudentResponseDTO {
+    private Long id;
+    private String name;
+    private String email;
+    private int age;
+    private int rollNo;
+    private String subject;
+    private String message;
+
+    // Setters
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    public void setAge(int age) {
+        this.age = age;
+    }
+    public void setRollNo(int rollNo) {
+        this.rollNo = rollNo;
+    }
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
+    public void setMessage(String message) {
+        this.message = message;
+    }
+}
+```
+
+```java
+// StudentController.java
+
+@PostMapping
+    public ResponseEntity<CreateStudentResponseDTO> createStudent(
+        @RequestBody CreateStudentRequestDTO studentReqDto
+    ){
+        CreateStudentResponseDTO createdStudent = studentService.createStudent(studentReqDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
+    }
+```
+
+```java
+// StudentService.java
+
+public CreateStudentResponseDTO createStudent(CreateStudentRequestDTO studentReqDto) {
+    Student student = new Student();
+    student.setName(studentReqDto.getName());
+    student.setEmail(studentReqDto.getEmail());
+    student.setAge(studentReqDto.getAge());
+    student.setRollNo(studentReqDto.getRollNo());
+    student.setSubject(studentReqDto.getSubject());
+    // set default value of variable for soft delete as false for new records
+    student.setDeleted(false);
+
+    // save the student
+    Student studentResponse = studentRepository.save(student);
+
+    // Create response and do mapping
+    CreateStudentResponseDTO createStudentResponse = new CreateStudentResponseDTO();
+    createStudentResponse.setId(studentResponse.getId());
+    createStudentResponse.setName(studentResponse.getName());
+    createStudentResponse.setEmail(studentResponse.getEmail());
+    createStudentResponse.setAge(studentResponse.getAge());
+    createStudentResponse.setRollNo(studentResponse.getRollNo());
+    createStudentResponse.setSubject(studentResponse.getSubject());
+    createStudentResponse.setMessage("Student created successfully!");
+
+    return createStudentResponse;
+}
+```
+> **NOTE**: In actual production code, we will have mapper class for mapping request dto to entity and mapping entity to response dto
+
+> **NOTE**: Also we will not map one by one, we may miss any field; rather we will use builder class
+
+---
+
+## Data Validation
+- we will use `spring-boot-starter-validation` dependency
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+- Then in the DTO class, for the variables, we will add validation annotations:
+```java
+package com.ricky.StudentManagementSystem.dtos.request_dtos;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+public class CreateStudentRequestDTO {
+    // validations
+    @NotBlank(message = "Name not provided.")  // cannot be null, empty or white spaces
+    @Size(min = 2, max = 50, message = "Name should be between 2 to 50 characters long.")
+    private String name;
+
+    @NotBlank(message = "Email not provided.")
+    @Email(message = "Invalid email format.")
+    private String email;
+
+    @NotNull(message = "Age not provided.")
+    @Min(value = 18, message = "Student must be atleast 18 years old.")
+    private Integer age;
+
+    @NotNull(message = "Roll Number not provided.")
+    private Integer rollNo;
+
+    @NotBlank(message = "Subject not provided.")
+    private String subject;
+
+    // GETTERS
+    public String getName() {
+        return name;
+    }
+    public String getEmail() {
+        return email;
+    }
+    public Integer getAge() {
+        return age;
+    }
+    public Integer getRollNo() {
+        return rollNo;
+    }
+    public String getSubject() {
+        return subject;
+    }
+}
+```
+
+- Then in the `Controller` we will use `@Valid` annotation
+```java
+@PostMapping
+    public ResponseEntity<CreateStudentResponseDTO> createStudent(
+        @Valid @RequestBody CreateStudentRequestDTO studentReqDto
+    ){
+        CreateStudentResponseDTO createdStudent = studentService.createStudent(studentReqDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
+    }
+```
+
+### Available Annotations for Validation
+
+| Annotation | Used for | Meaning |
+|------------|----------|---------|
+| `@NotNull` | Any object | Value must not be `null`. |
+| `@NotBlank` | `String` | Must not be `null`, empty (`""`), or contain only whitespace. |
+| `@NotEmpty` | `String`, `Collection`, `List`, `Map`, `Array` | Must not be `null` or empty. |
+| `@Size(min, max)` | `String`, `Collection`, `List`, `Map`, `Array` | Specifies the minimum and/or maximum size or length. |
+| `@Min(value)` | Numeric types | Value must be greater than or equal to the specified minimum. |
+| `@Max(value)` | Numeric types | Value must be less than or equal to the specified maximum. |
+| `@Positive` | Numeric types | Value must be greater than `0`. |
+| `@PositiveOrZero` | Numeric types | Value must be greater than or equal to `0`. |
+| `@Negative` | Numeric types | Value must be less than `0`. |
+| `@NegativeOrZero` | Numeric types | Value must be less than or equal to `0`. |
+| `@Email` | `String` | Must be a valid email address. |
+| `@Pattern(regexp = "...")` | `String` | Must match the given regular expression. |
+| `@Past` | `Date`, `LocalDate`, `LocalDateTime`, etc. | Date/time must be in the past. |
+| `@PastOrPresent` | Date/Time types | Date/time must be in the past or present. |
+| `@Future` | Date/Time types | Date/time must be in the future. |
+| `@FutureOrPresent` | Date/Time types | Date/time must be in the future or present. |
+| `@AssertTrue` | `boolean`, `Boolean` | Value must be `true`. |
+| `@AssertFalse` | `boolean`, `Boolean` | Value must be `false`. |
+
+---

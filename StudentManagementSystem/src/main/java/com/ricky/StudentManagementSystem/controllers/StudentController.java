@@ -1,7 +1,12 @@
 package com.ricky.StudentManagementSystem.controllers;
 
+import com.ricky.StudentManagementSystem.dtos.request_dtos.CreateStudentRequestDTO;
+import com.ricky.StudentManagementSystem.dtos.response_dtos.CreateStudentResponseDTO;
 import com.ricky.StudentManagementSystem.entities.Student;
 import com.ricky.StudentManagementSystem.services.StudentService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,10 +26,12 @@ public class StudentController {
 
     // POST /api/students
     @PostMapping
-    public ResponseEntity<Student> createStudent(@RequestBody Student student){
+    public ResponseEntity<CreateStudentResponseDTO> createStudent(
+        @Valid @RequestBody CreateStudentRequestDTO studentReqDto
+    ){
         // whatever payload we pass in request body in json format gets converted to java class (Student)
         // using jackson library
-        Student createdStudent = studentService.createStudent(student);
+        CreateStudentResponseDTO createdStudent = studentService.createStudent(studentReqDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
     }
 
