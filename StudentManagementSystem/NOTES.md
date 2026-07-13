@@ -85,7 +85,7 @@ spring.jpa.properties.hibernate.format-sql=true
 ```
 
 - SQL Query to create database in MySQL
-```roomsql
+```sql
 CREATE DATABASE student_db;
 ```
 ---
@@ -220,7 +220,306 @@ public ResponseEntity<Student> getStudentDetails(@PathVariable Long id) {
     return ResponseEntity.ok(student);
 }
 ```
+---
 
+## Soft Delete
+- Not deleting the data completing from the database
+- marking the record as deleted by using a boolean field or other as per requirement
+- so when fetching record, we can add this filter of `isDeleted` (suppose) field that it should be false
+
+- For our application, for now we were fetching directly
+```sql
+SELECT * FROM students WHERE id = ?
+```
+> for this the method we have: `findById()`
+
+- But now we have query like:
+```sql
+SELECT * FROM students WHERE id = ? AND isDeleted = false;
+```
+> We dont have pre defined functions for this
+
+- But Spring Data Jpa has power that we can follow a syntax and can create a method name of our need and at run time JPA will add its implementation by understanding the method name
+
+```java
+ <prefix>By<property><operator><property><operator>...
+```
+```text
+where
+- prefix = what operation to perform
+- By = starts the filtering conditions
+- property = field name in your entity
+- operator = optional comparison
+```
+
+### Query prefixes
+Common ones are:
+```java
+findBy(...)
+readBy(...)
+getBy(...)
+queryBy(...)
+```
+
+### `findAll()` is special case
+This method already exists in JpaRepository.
+```java
+findAll()
+```
+> No implementation needed
+
+Other examples which are also inherited.:
+```java
+findById(id)
+save(entity)
+deleteById(id)
+existsById(id)
+count()
+```
+
+### Conditions always start after `By`
+```java
+findByName(...)
+findByAge(...)
+findAllByAge(...)
+```
+
+> `Wrong:` findAllAndAge(...)
+
+
+### Examples:
+1. Equal
+```java
+findByName(String name)
+```
+```sql
+WHERE name = ?
+```
+
+2. Two Conditions
+```java
+findByNameAndAge(String name, int age)
+```
+```sql
+WHERE name = ? AND age = ?
+```
+
+3. OR
+```java
+findByNameOrEmail(String name, String email)
+```
+```sql
+WHERE name = ? OR email = ?
+```
+
+4. Boolean field
+    - if your entity has:
+```java
+private boolean isDeleted;
+```
+```java
+findByIsDeletedTrue()
+```
+```sql
+WHERE is_deleted = true
+```
+
+```java
+findByIdAndIsDeletedFalse(Long id)
+```
+```sql
+WHERE id = ?
+AND is_deleted = false
+```
+
+5. Contains
+```java
+findByNameContaining(String keyword)
+```
+```sql
+WHERE name LIKE '%keyword%'
+```
+
+6. StartsWith & EndsWith
+```java
+findByNameStartingWith(String prefix)
+```
+```sql
+LIKE 'prefix%'
+```
+
+```java
+findByNameEndingWith(String suffix)
+```
+```sql
+LIKE '%suffix'
+```
+
+7. Ignore case
+```java
+findByNameIgnoreCase(String name)
+```
+
+8. Greater Than
+```java
+findByAgeGreaterThan(int age)
+```
+```sql
+WHERE age > ?
+```
+
+9. Less Than
+```java
+findByAgeLessThan(int age)
+```
+```sql
+WHERE age < ?
+```
+
+10. Between
+```java
+findByAgeBetween(int min, int max)
+```
+```sql
+WHERE age BETWEEN ? AND ?
+```
+
+11. In
+```java
+findByAgeIn(List<Integer> ages)
+```
+```sql
+WHERE age IN (...)
+```
+
+12. Not
+```java
+findByAgeNot(int age)
+```
+```sql
+WHERE age <> ?
+```
+
+13. Null Checks
+```java
+findByEmailIsNull()
+```
+```sql
+WHERE email IS NULL
+```
+
+```java
+findByEmailIsNotNull()
+```
+```sql
+WHERE email IS NOT NULL
+```
+
+14. Sorting
+```java
+findByAgeOrderByNameAsc()
+```
+```sql
+WHERE age = ?
+ORDER BY name ASC
+```
+
+```java
+findByAgeOrderByNameDesc()
+```
+```sql
+WHERE age = ?
+ORDER BY name DESC
+```
+
+15. Top / First
+```java
+findTopByOrderByAgeDesc()
+```
+> Returns the oldest student.
+
+```java
+findFirstByOrderByAgeAsc()
+```
+> Returns the youngest student.
+
+16. Exists
+Instead of returning an entity, returns a boolean.
+
+```java
+existsByEmail(String email)
+```
+
+17. Count
+Returns the number of matching records.
+
+```java
+countByIsDeletedFalse()
+```
+
+18. Delete
+Spring Data JPA can also derive delete queries.
+
+```java
+deleteByEmail(String email)
+```
+
+---
+
+### Property names must match the Entity
+
+The property used in the repository method **must exactly match the Java field/property name** in the entity (not the database column name).
+
+If the entity has:
+
+```java
+private String rollNo;
+```
+
+Then this is valid:
+
+```java
+findByRollNo(String rollNo)
+```
+
+But this is **invalid**:
+
+```java
+findByRollNumber(String rollNumber)
+```
+
+because `rollNumber` is not a property of the entity.
+
+Similarly, if your entity has:
+
+```java
+private boolean deleted;
+```
+
+use:
+
+```java
+findByDeletedFalse()
+```
+
+not
+
+```java
+findByIsDeletedFalse()
+```
+
+---
+
+### When to use `@Query`
+
+Method-name query derivation is great for simple CRUD queries.
+
+As queries become more complex (multiple joins, aggregations, subqueries, custom SQL, etc.), method names become long and difficult to maintain. In such cases, prefer using:
+
+- `@Query` (JPQL)
+- `@Query(nativeQuery = true)` (Native SQL)
+- JPA Criteria API
+- `Specification<T>` for dynamic queries
 ---
 
 ## Summary

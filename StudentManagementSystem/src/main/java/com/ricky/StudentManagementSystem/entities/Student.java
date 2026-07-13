@@ -1,6 +1,8 @@
 package com.ricky.StudentManagementSystem.entities;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 // this tells that Student class will be stored as Student table
@@ -8,12 +10,14 @@ import jakarta.persistence.Id;
 @Entity
 public class Student {
     @Id // this tells that this field will be primary key column in Student table
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // it tells auto-increment
     private Long id;
     private String name;
     private String email;
     private int age;
     private int rollNo;
     private String subject;
+    private boolean isDeleted;
 
     public Long getId() {
         return id;
@@ -61,5 +65,13 @@ public class Student {
 
     public void setSubject(String subject) {
         this.subject = subject;
+    }
+    
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean isDeleted) {
+        this.isDeleted = isDeleted;
     }
 }

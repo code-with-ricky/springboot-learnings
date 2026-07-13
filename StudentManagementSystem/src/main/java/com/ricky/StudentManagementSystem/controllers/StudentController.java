@@ -2,13 +2,10 @@ package com.ricky.StudentManagementSystem.controllers;
 
 import com.ricky.StudentManagementSystem.entities.Student;
 import com.ricky.StudentManagementSystem.services.StudentService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/students")  // this sets prefix for all endpoints inside this StudentController
@@ -17,7 +14,7 @@ public class StudentController {
     // Dependency injection of StudentService, as we need to call StudentService methods
     // for which we need bean of StudentService
     private final StudentService studentService;
-    @Autowired
+
     public StudentController(StudentService studentService){
         this.studentService = studentService;
     }
@@ -64,11 +61,24 @@ public class StudentController {
     // DELETE /api/students/{id}
     // Example: /api/students/1
     @DeleteMapping("{id}")
-    public ResponseEntity deleteStudent(@PathVariable Long id){
+    public ResponseEntity<?> deleteStudent(@PathVariable Long id){
         boolean deleteResponse = studentService.deleteStudentService(id);
         if(!deleteResponse) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok().build();
+    }
+
+    // Here we are learning about query parameters also
+    // PATCH /api/students?id=2
+    @PatchMapping
+    public ResponseEntity<?> softDeleteStudent(@RequestParam Long id){
+        Boolean isStudentDeleted = studentService.deleteStudentSoftly(id);
+
+        if(!isStudentDeleted){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok("Record deleted");
     }
 }
